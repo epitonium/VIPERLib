@@ -64,6 +64,11 @@ open class Router: RouterInterface {
     }
     // ...........
     
+    public func fadeTo<T: UIViewController>(module: Module, removing types: [T.Type]) {
+        navigationController?.fadeTo(module: module, removing: types)
+    }
+    // ...........
+    
     public func unfade() {
         navigationController?.unfade()
     }

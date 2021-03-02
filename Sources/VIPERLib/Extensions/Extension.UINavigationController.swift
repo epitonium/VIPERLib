@@ -54,6 +54,27 @@ public extension UINavigationController {
         view.layer.add(transition, forKey: nil)
         pushViewController(vc, animated: false)
     }
+    
+    // ...........
+    func fadeTo<T: UIViewController>(module: Module, removing types: [T.Type] = []) {
+        // Get controller
+        let vc = module.getController()
+        // Set presentation
+        if let presentationSylable = (vc as? PresentationSylable) {
+            presentationSylable.controllerPresentationStyle = .pushed(.fade)
+        }
+        // Remove specific controllers
+        var viewControllerList = viewControllers.filter({ (viewController) -> Bool in
+            return !types.contains(where: { String(describing: type(of: viewController)) == String(describing: $0)})
+        })
+        // Transition
+        let transition: CATransition = CATransition()
+        transition.duration = 0.15
+        transition.type = CATransitionType.fade
+        view.layer.add(transition, forKey: nil)
+        viewControllerList.append(vc)
+        setViewControllers(viewControllerList, animated: false)
+    }
     // ...........
     
     func unfade() {
