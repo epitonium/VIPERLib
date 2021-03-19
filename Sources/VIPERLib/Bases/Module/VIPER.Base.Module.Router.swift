@@ -33,6 +33,13 @@ open class Router: RouterInterface {
     
     //  MARK: - METHODS 🌐 PUBLIC
     // ///////////////////////////////////////////
+    public func getNavigationControllerLastControllerType() -> UIViewController.Type? {
+        guard let vc = navigationController?.viewControllers.last else {
+            print("COULD NOT GET navigationController LAST")
+            return nil
+        }
+        return type(of: vc)
+    }
     // Present
     public func present(module: Module, isAnimated: Bool = true, completion: (() -> Void)? = nil) {
         controller.present(module: module, isAnimated: isAnimated, completion: completion)
@@ -69,8 +76,18 @@ open class Router: RouterInterface {
     }
     // ...........
     
+    public func fadeTo<T: UIViewController>(module: Module, removingTill type: T.Type) {
+        navigationController?.fadeTo(module: module, removingTill: type)
+    }
+    // ...........
+    
     public func unfade() {
         navigationController?.unfade()
+    }
+    // ...........
+    
+    public func unfade<T: UIViewController>(to type: T.Type) {
+        navigationController?.unfade(to: type)
     }
     // ...........
     
