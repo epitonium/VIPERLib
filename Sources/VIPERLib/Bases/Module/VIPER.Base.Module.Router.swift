@@ -40,6 +40,13 @@ open class Router: RouterInterface {
         }
         return type(of: vc)
     }
+    // ...........
+    public func getNavigationStackTypeList() -> [UIViewController.Type] {
+        guard let vcList = navigationController?.viewControllers else {
+            return []
+        }
+        return vcList.map({type(of: $0)})
+    }
     // Present
     public func present(module: Module, isAnimated: Bool = true, completion: (() -> Void)? = nil) {
         controller.present(module: module, isAnimated: isAnimated, completion: completion)
@@ -58,6 +65,11 @@ open class Router: RouterInterface {
     
     public func push<T: UIViewController>(module: Module, removing types: [T.Type], isAnimated: Bool = true) {
         navigationController?.push(module: module, removing: types, isAnimated: isAnimated)
+    }
+    // ...........
+    
+    public func push<T: UIViewController>(module: Module, removingTill type: T.Type, isAnimated: Bool = true) {
+        navigationController?.push(module: module, removingTill: type, isAnimated: isAnimated)
     }
     // ...........
     
@@ -91,6 +103,11 @@ open class Router: RouterInterface {
     }
     // ...........
     
+    public func unfadeTo<T: UIViewController>(module: Module, removingTill type: T.Type, leaving leavingTypesList: [T.Type] = []) {
+        navigationController?.unfadeTo(module: module, removingTill: type, leaving: leavingTypesList)
+    }
+    // ...........
+    
     public func slideTo(module: Module) {
         navigationController?.slide(module: module)
     }
@@ -111,8 +128,8 @@ open class Router: RouterInterface {
     }
     // ...........
     
-    public func stack(with modules: [Module], style: ControllerPresentationStyle.PushedStyle = .default, isAnimated: Bool = false) {
-        navigationController?.stack(with: modules, style: style, isAnimated: isAnimated)
+    public func stack(_ stackAction: UINavigationController.StackAction, with modules: [Module], style: ControllerPresentationStyle.PushedStyle = .default, isAnimated: Bool = false) {
+        navigationController?.stack(stackAction, with: modules, style: style, isAnimated: isAnimated)
     }
     
     // Window

@@ -17,6 +17,16 @@ public extension UINavigationController {
         case slide
         case unslide
     }
+    // ...........
+    enum StackAction {
+        case new
+        case add
+    }
+    // ...........
+    enum StackPrintingType {
+        case initial
+        case final([UIViewController])
+    }
     
     //  MARK: - PROPERTIES 🔰 PRIVATE
     // ////////////////////////////////////
@@ -25,12 +35,10 @@ public extension UINavigationController {
     
     //  MARK: - METHODS 🌐 PUBLIC
     // ///////////////////////////////////////////
-    
-    
     //                                      MARK: - STACK
     //..............................................................................................
     // Controllers stack
-    func stack(with modules: [Module], style: ControllerPresentationStyle.PushedStyle = .default, isAnimated: Bool = false) {
+    func stack(_ stackAction: StackAction, with modules: [Module], style: ControllerPresentationStyle.PushedStyle = .default, isAnimated: Bool = false) {
         // Check modules
         guard !modules.isEmpty else {
             print("EMPTY MODULES LIST")
@@ -38,6 +46,14 @@ public extension UINavigationController {
         }
         // Declare controllers
         var controllersList = [UIViewController]()
+        // Handle stack action
+        switch stackAction {
+        case .new:
+            break
+        // ...........
+        case .add:
+            controllersList.append(contentsOf: viewControllers)
+        }
         // Iterate
         modules.forEach { module in
             // Get controller and set presentation style
@@ -86,6 +102,17 @@ public extension UINavigationController {
         // Execute
         setViewControllers(newControllerList, animated: isAnimated)
     }
+    // ...........
+    func push<T: UIViewController>(module: Module, removingTill type: T.Type, isAnimated: Bool = true) {
+        printStack(.initial)
+        // Get controller and set presentation style
+        let vc = getController(from: module, forPresentationStyle: .pushed(.default))
+        // Remove specific controllers
+        let newControllerList = getList(removingTill: type, andAdding: vc)
+        printStack(.final(newControllerList))
+        // Execute
+        setViewControllers(newControllerList, animated: isAnimated)
+    }
     
     //                                      MARK: - POP
     //..............................................................................................
@@ -122,17 +149,12 @@ public extension UINavigationController {
     }
     // ...........
     func fadeTo<T: UIViewController>(module: Module, removingTill type: T.Type) {
-        viewControllers.forEach { vc in
-            print(vc, "\n")
-        }
+        printStack(.initial)
         // Get controller and set presentation style
         let vc = getController(from: module, forPresentationStyle: .pushed(.fade))
         // Remove specific controllers
         let newControllerList = getList(removingTill: type, andAdding: vc)
-        
-        newControllerList.forEach { vc in
-            print(vc, "\n")
-        }
+        printStack(.final(newControllerList))
         // Transition
         setTransition(.fade, view)
         // Execute
@@ -157,6 +179,19 @@ public extension UINavigationController {
         setTransition(.unfade, view)
         // Execute
         popToViewController(vc, animated: false)
+    }
+    // Unfade to specified controller removing till specific type
+    func unfadeTo<T: UIViewController>(module: Module, removingTill type: T.Type, leaving leavingTypesList: [T.Type]) {
+        printStack(.initial)
+        // Get controller and set presentation style
+        let vc = getController(from: module, forPresentationStyle: .pushed(.fade))
+        // Remove specific controllers
+        let newControllerList = getList(removingTill: type, leaving: leavingTypesList, andAdding: vc)
+        printStack(.final(newControllerList))
+        // Transition
+        setTransition(.unfade, view)
+        // Execute
+        setViewControllers(newControllerList, animated: false)
     }
     
     //                                      MARK: - SLIDE
@@ -217,22 +252,43 @@ public extension UINavigationController {
         return viewControllerList
     }
     // ...........
-    private func getList<T: UIViewController>(removingTill type: T.Type, andAdding vc: UIViewController) -> [UIViewController] {
+    private func getList<T: UIViewController>(removingTill finalType: T.Type, leaving leavingTypesList: [T.Type] = [], andAdding vc: UIViewController) -> [UIViewController] {
+        // Check controllers count
+        guard viewControllers.count > 1 else {
+            return chainContollers(viewControllers, [vc])
+        }
         // Get last needed controller index
-        guard let tillControllerIndex = getControllerIndex(forType: type) else {
-            return viewControllers
+        guard let finalIndex = getControllerIndex(forType: finalType) else {
+            return chainContollers(viewControllers, [vc])
         }
-        // Check indexes
-        guard viewControllers.count > tillControllerIndex else {
-            print("INDEXES ERROR")
-            return viewControllers
+        // Get forward slice array
+        let forwardSliceList = Array(viewControllers[viewControllers.startIndex...finalIndex])
+        // Create next index
+        let nextIndex = finalIndex + 1
+        // Check next index
+        guard viewControllers.indices.contains(nextIndex) else {
+            return chainContollers(forwardSliceList, [vc])
         }
-        // Get new slices array
-        var slicedList = viewControllers[0...tillControllerIndex]
-        // Append controller
-        slicedList.append(vc)
-        // Return
-        return Array(slicedList)
+        // Check leaving list
+        guard !leavingTypesList.isEmpty else {
+            return chainContollers(forwardSliceList, [vc])
+        }
+        // Get last slice array
+        let lastSlice = viewControllers[nextIndex..<viewControllers.endIndex]
+        // Filter last slice
+        let newLastSlice: [UIViewController] = lastSlice.filter({ item in leavingTypesList.contains { (leaveItem: UIViewController.Type) -> Bool in
+            leaveItem == type(of: item)
+        }})
+        // Concat
+        return chainContollers(forwardSliceList, newLastSlice, [vc])
+    }
+    // ...........
+    private func chainContollers(_ lists: [UIViewController]...) -> [UIViewController] {
+        var newArray: [UIViewController] = []
+        for array in lists {
+            newArray.append(contentsOf: array)
+        }
+        return newArray
     }
     // ...........
     private func setTransition(_ transitionType: Transition, _ view: UIView) -> () {
@@ -287,6 +343,22 @@ public extension UINavigationController {
             return nil
         }
         return index
+    }
+    // ...........
+    private func printStack(_ type: StackPrintingType) {
+        switch type {
+        case .initial:
+            print("\n🔵 INITIAL STACK")
+            viewControllers.forEach { vc in
+                print(vc)
+            }
+        // ...........
+        case .final(let list):
+            print("\n🔵 FINAL STACK")
+            list.forEach { vc in
+                print(vc)
+            }
+        }
     }
 }
 
